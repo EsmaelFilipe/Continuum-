@@ -13,10 +13,17 @@
 ## 2. Set Up Database Schema
 
 1. In your Supabase dashboard, go to **SQL Editor**
-2. Open the file `supabase/schema.sql` from this project
-3. Copy and paste the entire SQL into the SQL Editor
-4. Click **Run** (or press Cmd/Ctrl + Enter)
-5. You should see "Success. No rows returned"
+2. **First, run the main schema:**
+   - Open the file `supabase/schema.sql` from this project
+   - Copy and paste the entire SQL into the SQL Editor
+   - Click **Run** (or press Cmd/Ctrl + Enter)
+   - You should see "Success. No rows returned"
+3. **Then, run the authentication migration:**
+   - Open the file `supabase/schema-auth.sql` from this project
+   - Copy and paste the entire SQL into the SQL Editor
+   - Click **Run** (or press Cmd/Ctrl + Enter)
+   - You should see "Success. No rows returned"
+   - This adds user authentication support and Row Level Security (RLS)
 
 ## 3. Get Your Supabase Credentials
 
@@ -55,10 +62,23 @@ npm run dev
 ## 6. Test It Out
 
 1. Open http://localhost:3000
-2. Create a conversation tree
-3. Click **Save New** to save your first conversation
-4. Click **Load** to see your saved conversations
-5. Click on a conversation to load it
+2. **Sign up for an account:**
+   - Enter your email and password (min 6 characters)
+   - Click "Sign Up"
+   - Check your email for a confirmation link (if email confirmation is enabled)
+3. **Sign in:**
+   - Enter your email and password
+   - Click "Sign In"
+4. **Create a conversation:**
+   - Click "Reply / Branch" on the system node
+   - Enter a message and wait for AI response
+5. **Save your conversation:**
+   - Click **Save New** to save your first conversation
+6. **Load conversations:**
+   - Click **Load** to see your saved conversations
+   - Click on a conversation to load it
+7. **Sign out:**
+   - Click **Sign Out** in the top toolbar
 
 ## Troubleshooting
 
@@ -68,8 +88,14 @@ npm run dev
 - Restart your dev server after adding env variables
 
 ### "Error: Conversation not found"
-- Make sure you ran the SQL schema in Supabase
+- Make sure you ran both SQL schemas (`schema.sql` and `schema-auth.sql`) in Supabase
 - Check that tables `conversations`, `nodes`, and `edges` exist in your database
+- Verify that the `conversations` table has a `user_id` column
+
+### "Unauthorized. Please sign in."
+- Make sure you're signed in (you should see the login form if not)
+- Check that you ran the `schema-auth.sql` migration
+- Verify Row Level Security (RLS) is enabled in Supabase dashboard
 
 ### Database connection issues
 - Verify your Supabase project is active (not paused)
