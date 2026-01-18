@@ -58,8 +58,11 @@ export async function POST(req: Request) {
     // Get authenticated user
     const { user, error: authError } = await getUserFromRequest();
     if (authError || !user) {
+      console.error('Auth error in POST /api/conversations:', authError, 'User:', user);
       return NextResponse.json({ error: 'Unauthorized. Please sign in.' }, { status: 401 });
     }
+
+    console.log('Creating conversation for user:', user.id);
 
     const body = await req.json();
     const { title, nodes, edges } = body;
@@ -74,6 +77,7 @@ export async function POST(req: Request) {
     }
 
     // 1. Create conversation with user_id
+    console.log('Inserting conversation with user_id:', user.id);
     const { data: conversation, error: convError } = await supabaseAdmin
       .from('conversations')
       .insert({ title: title || 'Untitled Conversation', user_id: user.id })
@@ -82,7 +86,8 @@ export async function POST(req: Request) {
 
     if (convError) {
       console.error('Error creating conversation:', convError);
-      return NextResponse.json({ error: convError.message }, { status: 500 });
+      console.error('Full error details:', JSON.stringify(convError, null, 2));
+      return NextResponse.json({ error: `Database error: ${convError.message}. Make sure you ran the schema-auth.sql migration.` }, { status: 500 });
     }
 
     const conversationId = conversation.id;

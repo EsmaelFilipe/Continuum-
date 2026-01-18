@@ -15,6 +15,7 @@ import 'reactflow/dist/style.css';
 
 import ChatNode from './ChatNode';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 // Register custom node types
 const nodeTypes = { chatNode: ChatNode };
@@ -229,9 +230,19 @@ export default function FlowEditor() {
       
       const method = currentConversationId ? 'PUT' : 'POST';
 
+      // Get the session token to send with the request
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated. Please sign in again.');
+      }
+
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        credentials: 'include', // Include cookies
         body: JSON.stringify({
           title,
           nodes: currentNodes,
@@ -243,8 +254,10 @@ export default function FlowEditor() {
         // Check if response is JSON before parsing
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to save conversation');
+          const errorData = await response.json();
+          const errorMessage = errorData.error || `Failed to save conversation (${response.status})`;
+          console.error('Save error:', errorMessage, errorData);
+          throw new Error(errorMessage);
         } else {
           // Response is HTML (error page), get text and show status
           const text = await response.text();
@@ -258,7 +271,8 @@ export default function FlowEditor() {
       alert('Conversation saved successfully!');
     } catch (error) {
       console.error('Error saving conversation:', error);
-      alert(`Error saving: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Error saving: ${errorMessage}\n\nCheck the browser console for more details.`);
     } finally {
       setIsLoading(false);
     }
@@ -270,15 +284,42 @@ export default function FlowEditor() {
   const handleLoadClick = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/conversations');
-      if (!response.ok) throw new Error('Failed to load conversations');
+      
+      // Get the session token to send with the request
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('Please sign in to load conversations');
+        return;
+      }
+
+      const response = await fetch('/api/conversations', {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        // Check if it's an auth error
+        if (response.status === 401) {
+          alert('Please sign in to load conversations');
+          return;
+        }
+        // For other errors, try to get error message
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to load conversations');
+      }
       
       const data = await response.json();
-      setConversations(data.conversations || []);
+      const conversationsList = data.conversations || [];
+      setConversations(conversationsList);
       setShowLoadDialog(true);
+      
+      // If no conversations, this is normal for new users - the dialog will show a friendly message
     } catch (error) {
       console.error('Error loading conversations:', error);
-      alert('Error loading conversations');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Error loading conversations: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -290,7 +331,20 @@ export default function FlowEditor() {
   const handleLoadConversation = async (conversationId: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/conversations/${conversationId}`);
+      
+      // Get the session token to send with the request
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('Please sign in to load conversations');
+        return;
+      }
+
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
       if (!response.ok) throw new Error('Failed to load conversation');
       
       const data = await response.json();
@@ -327,6 +381,19 @@ export default function FlowEditor() {
     }
   };
 
+  // ------------------------------------------------------------------
+  // 10. SIGN OUT: Handle sign out
+  // ------------------------------------------------------------------
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      // The auth state change will automatically redirect to login via the page component
+    } catch (error) {
+      console.error('Error signing out:', error);
+      alert('Error signing out. Please try again.');
+    }
+  };
+
   return (
     <div className="w-screen h-screen bg-gray-50 relative">
       {/* Toolbar */}
@@ -354,7 +421,7 @@ export default function FlowEditor() {
         <div className="ml-4 flex items-center gap-2 text-sm text-gray-600">
           <span>{user?.email}</span>
           <button
-            onClick={signOut}
+            onClick={handleSignOut}
             className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
           >
             Sign Out
@@ -376,7 +443,12 @@ export default function FlowEditor() {
               </button>
             </div>
             {conversations.length === 0 ? (
-              <p className="text-gray-500">No saved conversations found.</p>
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-2">No saved conversations yet.</p>
+                <p className="text-sm text-gray-400">
+                  Create a conversation and click "Save New" to get started!
+                </p>
+              </div>
             ) : (
               <div className="space-y-2">
                 {conversations.map((conv) => (

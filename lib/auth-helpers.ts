@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 // Helper to get authenticated user from request
 export async function getUserFromRequest() {
@@ -10,20 +10,37 @@ export async function getUserFromRequest() {
     return { user: null, error: 'Supabase not configured' };
   }
 
-  // Create a Supabase client with the request
-  const cookieStore = await cookies();
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
-      },
-    },
-  });
+  // Try to get token from Authorization header first
+  const headersList = await headers();
+  const authHeader = headersList.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  // Create a Supabase client
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  let user = null;
+  let error = null;
+
+  if (token) {
+    // If we have a token from header, use it
+    const { data, error: tokenError } = await supabase.auth.getUser(token);
+    user = data.user;
+    error = tokenError;
+  } else {
+    // Otherwise, try to get from cookies
+    const cookieStore = await cookies();
+    const supabaseWithCookies = createClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    });
+
+    const { data, error: cookieError } = await supabaseWithCookies.auth.getUser();
+    user = data.user;
+    error = cookieError;
+  }
 
   return { user, error };
 }
