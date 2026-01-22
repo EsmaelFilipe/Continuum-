@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';  // Add this import
 import { cookies, headers } from 'next/headers';
 
 // Helper to get authenticated user from request
@@ -29,13 +30,20 @@ export async function getUserFromRequest() {
   } else {
     // Otherwise, try to get from cookies
     const cookieStore = await cookies();
-    const supabaseWithCookies = createClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+    const supabaseWithCookies = createServerClient(  
+      supabaseUrl, 
+      supabaseAnonKey, 
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToset){
+            
+          }
         },
-      },
-    });
+      }
+    );
 
     const { data, error: cookieError } = await supabaseWithCookies.auth.getUser();
     user = data.user;
@@ -44,4 +52,3 @@ export async function getUserFromRequest() {
 
   return { user, error };
 }
-
