@@ -30,7 +30,7 @@ const ChatNode = ({ id, data }: NodeProps<ChatNodeData>) => {
 
         {/* Reply Button - This creates the branch */}
         <button 
-          onClick={() => data.onReply(id)}
+          onClick={() => data.onReply!(id)}
           className="mt-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded self-start transition"
         >
           + Reply / Branch
