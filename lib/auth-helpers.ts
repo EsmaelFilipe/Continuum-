@@ -38,12 +38,18 @@ export async function getUserFromRequest() {
           getAll() {
             return cookieStore.getAll();
           },
-          setAll(cookiesToset){
+          setAll(cookiesToSet){
+            try{
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options);
+              });
+            }catch(error){
+              console.warn('Failed to set cookies:', error);
             
           }
         },
       }
-    );
+  });
 
     const { data, error: cookieError } = await supabaseWithCookies.auth.getUser();
     user = data.user;
