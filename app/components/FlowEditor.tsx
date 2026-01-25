@@ -38,7 +38,7 @@ export default function FlowEditor() {
         type: 'chatNode',
         position: { x: 250, y: 50 },
         data: { 
-          label: `System: Hello ${userName}! I am Continuum, your infinite canvas AI. Start a conversation.`, 
+          label: `Hello ${userName}! I am Continuum, your infinite canvas AI. Start a conversation.`, 
           role: 'system' 
         },
       },
