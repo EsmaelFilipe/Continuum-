@@ -20,15 +20,6 @@ import { supabase } from '@/lib/supabase';
 // Register custom node types
 const nodeTypes = { chatNode: ChatNode };
 
-const initialNodes: Node[] = [
-  {
-    id: 'root',
-    type: 'chatNode',
-    position: { x: 250, y: 50 },
-    data: { label: 'System: Hello! I am Continuum,your infinite canvas AI. Start a conversation.', role: 'system' },
-  },
-];
-
 type Conversation = {
   id: string;
   title: string | null;
@@ -38,7 +29,26 @@ type Conversation = {
 
 export default function FlowEditor() {
   const { user, signOut } = useAuth();
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+
+  const getInitialNodes = (): Node[] => {
+    const userName = user?.email?.split('@')[0] || 'there';
+    return [
+      {
+        id: 'root',
+        type: 'chatNode',
+        position: { x: 250, y: 50 },
+        data: { 
+          label: `System: Hello ${userName}! I am Continuum, your infinite canvas AI. Start a conversation.`, 
+          role: 'system' 
+        },
+      },
+    ];
+  };
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(getInitialNodes());
+
+
+ 
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -375,7 +385,7 @@ export default function FlowEditor() {
   // ------------------------------------------------------------------
   const handleNew = () => {
     if (confirm('Start a new conversation? Unsaved changes will be lost.')) {
-      setNodes(initialNodes);
+      setNodes(getInitialNodes);
       setEdges([]);
       setCurrentConversationId(null);
     }
