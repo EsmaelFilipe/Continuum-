@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { Handle, Position, NodeProps, NodeResizer } from "reactflow";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -42,26 +42,38 @@ const CodeBlock: React.FC<{
 const ChatNode = ({ id, data, selected }: NodeProps<ChatNodeData>) => {
   const isUser = data.role === "user";
   const content = data.label ?? "...";
+  const [isMinimized, setIsMinimized] = useState(false);
+
+  const toggleMinimize = () => {
+    setIsMinimized((prev) => !prev);
+  };
 
   return (
     <div
       style={{
         width: data.width ? `${data.width}px` : 'auto',
-        height: data.height ? `${data.height}px` : 'auto',
+        height: isMinimized ? '40px' : 'auto', // Adjust height when minimized
         minWidth: 150,
         minHeight: 60,
-        overflow: 'hidden', // Prevent scrollbars unless content overflows
+        overflow: 'hidden',
+        transition: 'height 0.3s ease', // Smooth transition for height
       }}
       className={`relative shadow-lg rounded-xl border p-4 break-words
         ${isUser ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"}`}
     >
+      <div className="absolute top-2 right-2 flex gap-1">
+        <button onClick={toggleMinimize} className="text-xs bg-gray-200 rounded p-1">
+          {isMinimized ? '🔼' : '🔽'} {/* Minimize/Maximize icon */}
+        </button>
+      </div>
+
       {/* NodeResizer from reactflow — visible only when node is selected */}
-      <NodeResizer color="#55444dff" isVisible={!!selected} minWidth={100} minHeight={30} />
+      <NodeResizer color="#f9f5f7ff" isVisible={!!selected} minWidth={100} minHeight={30} />
 
       {/* Input Handle (Connect from parent) */}
       <Handle type="target" position={Position.Top} className="w-3 h-3 bg-gray-400" />
 
-      <div className="flex flex-col gap-2">
+      <div className={`flex flex-col gap-2 ${isMinimized ? 'opacity-0 transition-opacity duration-300' : 'opacity-100'}`}>
         <div className="text-xs font-bold uppercase text-gray-400">{data.role}</div>
 
         <div className="text-sm text-gray-800 leading-relaxed">
