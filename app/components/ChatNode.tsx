@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo } from "react";
-import { Handle, Position, NodeProps } from "reactflow";
+import { Handle, Position, NodeProps, NodeResizer } from "reactflow";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -15,6 +15,8 @@ type ChatNodeData = {
   label: string;
   role: "user" | "assistant" | "system";
   onReply?: (id: string) => void;
+  width?: number;
+  height?: number;
 };
 
 const CodeBlock: React.FC<{
@@ -37,15 +39,25 @@ const CodeBlock: React.FC<{
   );
 };
 
-const ChatNode = ({ id, data }: NodeProps<ChatNodeData>) => {
+const ChatNode = ({ id, data, selected }: NodeProps<ChatNodeData>) => {
   const isUser = data.role === "user";
   const content = data.label ?? "...";
 
   return (
     <div
-      className={`shadow-lg rounded-xl border p-4 min-w-[250px] max-w-[400px] break-words
+      style={{
+        width: data.width ? `${data.width}px` : 'auto',
+        height: data.height ? `${data.height}px` : 'auto',
+        minWidth: 150,
+        minHeight: 60,
+        overflow: 'hidden', // Prevent scrollbars unless content overflows
+      }}
+      className={`relative shadow-lg rounded-xl border p-4 break-words
         ${isUser ? "bg-blue-50 border-blue-200" : "bg-white border-gray-200"}`}
     >
+      {/* NodeResizer from reactflow — visible only when node is selected */}
+      <NodeResizer color="#55444dff" isVisible={!!selected} minWidth={100} minHeight={30} />
+
       {/* Input Handle (Connect from parent) */}
       <Handle type="target" position={Position.Top} className="w-3 h-3 bg-gray-400" />
 
@@ -60,7 +72,7 @@ const ChatNode = ({ id, data }: NodeProps<ChatNodeData>) => {
             remarkPlugins={[remarkGfm, remarkMath]}
             rehypePlugins={[rehypeKatex]}
             components={{
-              code: ({ inline, className, children, ...props }: any) => (
+              code: ({ inline, className, children }: any) => (
                 <CodeBlock inline={inline} className={className}>
                   {children}
                 </CodeBlock>
